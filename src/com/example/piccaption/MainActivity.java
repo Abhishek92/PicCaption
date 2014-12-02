@@ -2,9 +2,7 @@ package com.example.piccaption;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-
 import android.app.Activity;
 import android.content.Intent;
 import android.database.Cursor;
