@@ -33,15 +33,15 @@ public class MainActivity extends Activity implements OnClickListener{
 	
 	private static final int CAMERA_INTENT_REQUEST = 100;
 	private static final int GALLERY_REQUEST_CODE = 101;
-	
+	private boolean isImageTaken = false;
+	private String TAG = "PicCaption";
 	private Button mButton1;
 	private ImageView mImageView;
 	private EditText mEditText;
-	private String TAG = "PicCaption";
 	private Uri imageUri;
 	private Button mButton2;
 	private Bitmap mutable;
-
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -55,7 +55,7 @@ public class MainActivity extends Activity implements OnClickListener{
 		mImageView.setOnClickListener(this);
 		registerForContextMenu(mImageView);
 	}
-	// when tap on image view of compose Issue Screen
+	// when tap on image view of main Screen
 	@Override
 	public void onCreateContextMenu(ContextMenu menu, View view,ContextMenuInfo menuInfo) {
 		super.onCreateContextMenu(menu, view, menuInfo);
@@ -80,24 +80,36 @@ public class MainActivity extends Activity implements OnClickListener{
 		if(v.getId() == R.id.imageView1)
 			openContextMenu(v);
 		else if(v.getId() == R.id.button1)
-		{
-			mButton1.post(new Runnable() {
-				@Override
-				public void run() {
-					Bitmap bitmap = ((BitmapDrawable)mImageView.getDrawable()).getBitmap();
-					addCaption(bitmap, mEditText.getText().toString());
-				}
-			});
+		{   
+			if(mEditText.getText().toString().trim().length() == 0)
+				mEditText.setError("Please write caption text first");
+			else
+			{	//Get image from image view and add a caption to it.
+				mButton1.postDelayed(new Runnable() {
+					@Override
+					public void run() {
+						Bitmap bitmap = ((BitmapDrawable)mImageView.getDrawable()).getBitmap();
+						addCaption(bitmap, mEditText.getText().toString());
+					}
+				},1000);
 			
+			}
 		}
 		else if(v.getId() == R.id.button2)
-		{
-			mButton2.post(new Runnable() {
-				@Override
-				public void run() {
-					saveImage();
-				}
-			});
+		{  
+			if(isImageTaken)
+			{	
+				isImageTaken = false; //Reset flag
+				//Save image after added caption to external storage and broadcast it to gallery. 
+				mButton2.postDelayed(new Runnable() {
+					@Override
+					public void run() {
+						saveImage();
+					}
+				}, 2000);
+			}
+			else
+				Toast.makeText(this, "Please select a new picture first!", Toast.LENGTH_LONG).show();
 		}
 	}
 	
@@ -105,9 +117,11 @@ public class MainActivity extends Activity implements OnClickListener{
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 		super.onActivityResult(requestCode, resultCode, data);
 		if (requestCode == CAMERA_INTENT_REQUEST && resultCode == Activity.RESULT_OK) {
-			mImageView.setImageBitmap(decodeSampledImage(imageUri.getPath(), 240, 240));
+			isImageTaken = true;
+			mImageView.setImageBitmap(decodeSampledImage(imageUri.getPath(), 320, 320));
 		}
 		else if (requestCode == GALLERY_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+			isImageTaken = true;
 			// Get the URI of browse photo
 			Uri contentUri = data.getData();
 			String[] proj = { MediaStore.Images.Media.DATA };
@@ -121,7 +135,7 @@ public class MainActivity extends Activity implements OnClickListener{
 				imageUri = Uri.parse(contentUri.getPath()); // Photo URI
 							
 			// set the bitmap to photo imageview
-			mImageView.setImageBitmap(decodeSampledImage(imageUri.getPath(), 240, 240));
+			mImageView.setImageBitmap(decodeSampledImage(imageUri.getPath(), 320, 320));
 		}
 	}
 	
@@ -153,15 +167,15 @@ public class MainActivity extends Activity implements OnClickListener{
 		}
 	}
 	
+	//Open image gallery to take picture by using intent.
 	private void openGalleryIntent() {
 		Intent intent = new Intent();
 		intent.setType("image/*");
 		intent.setAction(Intent.ACTION_PICK);
 		startActivityForResult(intent, GALLERY_REQUEST_CODE);
 	}
-	/**
-	 * Camera Intent
-	 */
+	
+	//Open camera app to take picture by using intent.
 	private void openCameraIntent() {
 		Intent cameraIntent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
 		try {
@@ -174,6 +188,7 @@ public class MainActivity extends Activity implements OnClickListener{
 		}
 	}
 	
+	//Add Caption to image
 	private void addCaption(Bitmap bitmap,String text)
 	{
 		mutable = bitmap.copy(Bitmap.Config.ARGB_8888, true);
@@ -187,6 +202,7 @@ public class MainActivity extends Activity implements OnClickListener{
 		mImageView.setImageBitmap(mutable);
 	}
 	
+	//Create an image file in external storage
 	private File createPhotoFile()
 	{
 		String capturedPhotoName = System.currentTimeMillis() + ".png";
@@ -198,6 +214,7 @@ public class MainActivity extends Activity implements OnClickListener{
 		return photo;
 	}
 	
+	//Save Image to external storage and send it to gallery
 	private void saveImage() {
 		try {
 			File file = createPhotoFile();
